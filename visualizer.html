@@ -1,0 +1,464 @@
+<title>OS Process Visualizer</title>
+<style>
+/*
+Design Update: "Nothing Phone" Aesthetic
+- Pure black and white palette with a single focused accent.
+- Heavy use of Dot Matrix patterns and monochrome tones.
+- Typography focused on the "Nothing" look (wide, bold, geometric).
+*/
+:root {
+  --bg: #ffffff;
+  --fg: #000000;
+  --accent: #ff0000;
+  --accent-alt: #cccccc;
+  --surface: #f5f5f5;
+  --border: #000000;
+  --shadow: #000000;
+  --success: #000000;
+  --warning: #666666;
+  --critical: #ff0000;
+
+  --font-display: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #000000;
+    --fg: #ffffff;
+    --accent: #ff3b3b;
+    --accent-alt: #333333;
+    --surface: #111111;
+    --border: #ffffff;
+    --shadow: #ffffff;
+    --success: #ffffff;
+    --warning: #888888;
+    --critical: #ff3b3b;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #000000;
+  --fg: #ffffff;
+  --accent: #ff3b3b;
+  --accent-alt: #333333;
+  --surface: #111111;
+  --border: #ffffff;
+  --shadow: #ffffff;
+  --success: #ffffff;
+  --warning: #888888;
+  --critical: #ff3b3b;
+  color-scheme: dark;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  margin: 0;
+  padding: 0;
+  line-height: 1.5;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background-image: radial-gradient(var(--border) 1px, transparent 1px);
+  background-size: 24px 24px;
+  opacity: 0.1;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.brutalist-card {
+  background: var(--surface);
+  border: 3px solid var(--border);
+  box-shadow: 6px 6px 0px var(--shadow);
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+
+.brutalist-btn {
+  font-family: var(--font-display);
+  font-weight: 900;
+  text-transform: uppercase;
+  background: var(--fg);
+  color: var(--bg);
+  border: 3px solid var(--border);
+  box-shadow: 4px 4px 0px var(--shadow);
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  transition: all 0.1s;
+}
+
+.brutalist-btn:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0px var(--shadow);
+}
+
+.brutalist-btn:active {
+  transform: translate(4px, 4px);
+  box-shadow: 0px 0px 0px var(--shadow);
+}
+
+.brutalist-input {
+  font-family: var(--font-mono);
+  border: 3px solid var(--border);
+  padding: 0.5rem;
+  background: var(--surface);
+  color: var(--fg);
+  box-shadow: 2px 2px 0px var(--shadow);
+}
+
+.app-container {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  height: 100vh;
+}
+
+@media (max-width: 768px) {
+  .app-container {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+}
+
+.sidebar {
+  padding: 1.5rem;
+  border-right: 3px solid var(--border);
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  overflow-y: auto;
+}
+
+.main-view {
+  padding: 1.5rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.header {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 3rem;
+  line-height: 0.9;
+  margin: 0 0 1rem 0;
+  text-transform: uppercase;
+  letter-spacing: -2px;
+}
+
+.process-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.process-card {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.process-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 3px solid var(--border);
+  padding-bottom: 0.5rem;
+}
+
+.process-id {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  background: var(--border);
+  color: var(--surface);
+  padding: 0.2rem 0.4rem;
+  font-size: 0.8rem;
+}
+
+.status-badge {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  padding: 0.2rem 0.5rem;
+  border: 2px solid var(--border);
+}
+
+.status-ready { background: var(--surface); color: var(--fg); }
+.status-running { background: var(--fg); color: var(--bg); }
+.status-waiting { background: var(--accent-alt); color: var(--fg); }
+.status-terminated { background: var(--accent); color: #fff; }
+
+.progress-bar-container {
+  height: 24px;
+  background: var(--bg);
+  border: 3px solid var(--border);
+  position: relative;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: var(--fg);
+  transition: width 0.3s ease;
+}
+
+.process-stats {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.stat-label { opacity: 0.7; }
+
+.controls-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
+  border: 3px solid var(--border);
+  background: var(--surface);
+  box-shadow: 4px 4px 0px var(--shadow);
+}
+
+.control-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.control-row label {
+  font-weight: 700;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  font-family: var(--font-display);
+}
+</style>
+
+<title>OS Process Visualizer</title>
+
+<div class="app-container">
+  <aside class="sidebar">
+    <h1 class="header">PROC<br>VIS</h1>
+
+    <div class="controls-group">
+      <div class="control-row">
+        <label for="proc-name">Process Name</label>
+        <input type="text" id="proc-name" class="brutalist-input" placeholder="e.g. Chrome.exe">
+      </div>
+      <div class="control-row">
+        <label for="proc-burst">Burst Time (ms)</label>
+        <input type="number" id="proc-burst" class="brutalist-input" value="1000">
+      </div>
+      <div class="control-row">
+        <label for="proc-priority">Priority</label>
+        <input type="number" id="proc-priority" class="brutalist-input" value="1">
+      </div>
+      <button id="add-proc" class="brutalist-btn">Spawn Process</button>
+    </div>
+
+    <div class="controls-group">
+      <div class="control-row">
+        <label>Scheduler</label>
+        <select id="sched-type" class="brutalist-input">
+          <option value="fcfs">First Come First Served</option>
+          <option value="sjf">Shortest Job First</option>
+          <option value="priority">Priority Scheduling</option>
+          <option value="rr">Round Robin (100ms)</option>
+        </select>
+      </div>
+      <button id="start-sim" class="brutalist-btn" style="background: var(--success); color: var(--bg);">Start Simulation</button>
+      <button id="reset-sim" class="brutalist-btn" style="background: var(--accent); color: #fff;">Reset All</button>
+    </div>
+
+    <div class="brutalist-card" style="padding: 1rem; font-family: var(--font-mono); font-size: 0.8rem;">
+      <strong style="font-family: var(--font-display);">LOGS</strong>
+      <div id="sim-logs" style="margin-top: 0.5rem; height: 200px; overflow-y: auto; border-top: 2px solid var(--border); padding-top: 0.5rem;">
+        Waiting for simulation...
+      </div>
+    </div>
+  </aside>
+
+  <main class="main-view">
+    <div class="process-grid" id="process-grid">
+      <!-- Process cards will be injected here -->
+    </div>
+  </main>
+</div>
+
+<script>
+  const state = {
+    processes: [],
+    isRunning: false,
+    currentTime: 0,
+    schedulerType: 'fcfs',
+    nextId: 101
+  };
+
+  const elements = {
+    grid: document.getElementById('process-grid'),
+    nameInp: document.getElementById('proc-name'),
+    burstInp: document.getElementById('proc-burst'),
+    priorInp: document.getElementById('proc-priority'),
+    addBtn: document.getElementById('add-proc'),
+    startBtn: document.getElementById('start-sim'),
+    resetBtn: document.getElementById('reset-sim'),
+    schedSel: document.getElementById('sched-type'),
+    logs: document.getElementById('sim-logs')
+  };
+
+  function log(msg) {
+    const time = new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const entry = document.createElement('div');
+    entry.style.marginBottom = '4px';
+    entry.innerHTML = `<span style="opacity: 0.6">[${time}]</span> ${msg}`;
+    elements.logs.prepend(entry);
+  }
+
+  function createProcess() {
+    const name = elements.nameInp.value || `Process ${state.nextId}`;
+    const burst = parseInt(elements.burstInp.value) || 1000;
+    const priority = parseInt(elements.priorInp.value) || 1;
+
+    const proc = {
+      id: state.nextId++,
+      name,
+      totalBurst: burst,
+      remainingBurst: burst,
+      priority,
+      status: 'ready',
+      progress: 0,
+      startTime: null,
+      endTime: null
+    };
+
+    state.processes.push(proc);
+    renderProcesses();
+    log(`Spawned ${name} (PID: ${proc.id})`);
+    elements.nameInp.value = '';
+  }
+
+  function renderProcesses() {
+    elements.grid.innerHTML = '';
+    state.processes.forEach(proc => {
+      const card = document.createElement('div');
+      card.className = 'brutalist-card process-card';
+
+      const statusClass = `status-${proc.status}`;
+
+      card.innerHTML = `
+        <div class="process-header">
+          <span class="process-id">PID: ${proc.id}</span>
+          <span class="status-badge ${statusClass}">${proc.status}</span>
+        </div>
+        <div style="font-weight: 900; font-family: var(--font-display); font-size: 1.2rem; text-transform: uppercase;">${proc.name}</div>
+        <div class="progress-bar-container">
+          <div class="progress-bar-fill" style="width: ${proc.progress}%"></div>
+        </div>
+        <div class="process-stats">
+          <span class="stat-label">Burst:</span> <span>${proc.totalBurst}ms</span>
+          <span class="stat-label">Rem:</span> <span>${proc.remainingBurst}ms</span>
+          <span class="stat-label">Pri:</span> <span>${proc.priority}</span>
+          <span class="stat-label">Prog:</span> <span>${Math.round(proc.progress)}%</span>
+        </div>
+      `;
+      elements.grid.appendChild(card);
+    });
+  }
+
+  async function runSimulation() {
+    if (state.isRunning) return;
+    if (state.processes.length === 0) {
+      log('No processes to run!');
+      return;
+    }
+
+    state.isRunning = true;
+    state.schedulerType = elements.schedSel.value;
+    elements.startBtn.disabled = true;
+    log(`SIM START // ${state.schedulerType.toUpperCase()}...`);
+
+    while (state.processes.some(p => p.status !== 'terminated')) {
+      let currentProc = null;
+      const readyQueue = state.processes.filter(p => p.status === 'ready' || p.status === 'running');
+
+      if (readyQueue.length === 0) break;
+
+      if (state.schedulerType === 'fcfs') {
+        currentProc = readyQueue[0];
+      } else if (state.schedulerType === 'sjf') {
+        currentProc = readyQueue.reduce((prev, curr) => prev.remainingBurst < curr.remainingBurst ? prev : curr);
+      } else if (state.schedulerType === 'priority') {
+        currentProc = readyQueue.reduce((prev, curr) => prev.priority < curr.priority ? prev : curr);
+      } else if (state.schedulerType === 'rr') {
+        currentProc = readyQueue[0];
+      }
+
+      if (!currentProc) break;
+
+      currentProc.status = 'running';
+      log(`SWITCH -> ${currentProc.name}`);
+      renderProcesses();
+
+      const slice = state.schedulerType === 'rr' ? 100 : 500;
+      const actualSlice = Math.min(slice, currentProc.remainingBurst);
+
+      await new Promise(r => setTimeout(r, 200));
+
+      currentProc.remainingBurst -= actualSlice;
+      currentProc.progress = ((currentProc.totalBurst - currentProc.remainingBurst) / currentProc.totalBurst) * 100;
+
+      if (currentProc.remainingBurst <= 0) {
+        currentProc.status = 'terminated';
+        log(`TERM -> ${currentProc.name}`);
+      } else if (state.schedulerType === 'rr') {
+        currentProc.status = 'ready';
+        const idx = state.processes.indexOf(currentProc);
+        state.processes.splice(idx, 1);
+        state.processes.push(currentProc);
+        log(`QUANTUM EXP -> ${currentProc.name}`);
+      }
+
+      renderProcesses();
+    }
+
+    state.isRunning = false;
+    elements.startBtn.disabled = false;
+    log('SIM COMPLETE // ALL PROC TERM');
+  }
+
+  function reset() {
+    state.processes = [];
+    state.isRunning = false;
+    state.nextId = 101;
+    elements.startBtn.disabled = false;
+    elements.logs.innerHTML = 'SIM RESET // READY';
+    renderProcesses();
+  }
+
+  elements.addBtn.onclick = createProcess;
+  elements.startBtn.onclick = runSimulation;
+  elements.resetBtn.onclick = reset;
+
+  window.onload = () => {
+    elements.nameInp.value = 'Kernel Task';
+    elements.burstInp.value = '2000';
+    createProcess();
+    elements.nameInp.value = 'Browser';
+    elements.burstInp.value = '1200';
+    createProcess();
+    elements.nameInp.value = 'Music Player';
+    elements.burstInp.value = '800';
+    createProcess();
+  };
+</script>

@@ -1,0 +1,391 @@
+<title>The Logic of Process Isolation</title>
+<style>
+/*
+Design Update: "Nothing Phone" Aesthetic
+- Pure black and white palette with a single focused accent.
+- Heavy use of Dot Matrix patterns and monochrome tones.
+- Typography focused on the "Nothing" look (wide, bold, geometric).
+*/
+:root {
+  --bg: #ffffff;
+  --fg: #000000;
+  --accent: #ff0000; /* High-vis red for critical points */
+  --surface: #f5f5f5;
+  --border: #000000;
+  --shadow: #000000;
+  --code-bg: #e0e0e0;
+
+  /* Nothing-inspired font stacks */
+  --font-display: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #000000;
+    --fg: #ffffff;
+    --accent: #ff3b3b;
+    --surface: #111111;
+    --border: #ffffff;
+    --shadow: #ffffff;
+    --code-bg: #222222;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #000000;
+  --fg: #ffffff;
+  --accent: #ff3b3b;
+  --surface: #111111;
+  --border: #ffffff;
+  --shadow: #ffffff;
+  --code-bg: #222222;
+  color-scheme: dark;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  margin: 0;
+  padding: 0;
+  line-height: 1.6;
+}
+
+/* Nothing-style Dot Matrix Background */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background-image: radial-gradient(var(--border) 1px, transparent 1px);
+  background-size: 24px 24px;
+  opacity: 0.1;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.brutalist-card {
+  background: var(--surface);
+  border: 3px solid var(--border);
+  box-shadow: 6px 6px 0px var(--shadow);
+  padding: 2rem;
+  margin-bottom: 3rem;
+}
+
+.brutalist-btn {
+  font-family: var(--font-display);
+  font-weight: 900;
+  text-transform: uppercase;
+  background: var(--fg);
+  color: var(--bg);
+  border: 3px solid var(--border);
+  box-shadow: 4px 4px 0px var(--shadow);
+  padding: 0.75rem 1.5rem;
+  cursor: pointer;
+  transition: all 0.1s;
+}
+
+.brutalist-btn:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0px var(--shadow);
+}
+
+.brutalist-btn:active {
+  transform: translate(4px, 4px);
+  box-shadow: 0px 0px 0px var(--shadow);
+}
+
+.app-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 3rem 1.5rem;
+}
+
+.header {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 4rem;
+  line-height: 0.9;
+  text-transform: uppercase;
+  text-align: center;
+  margin-bottom: 1rem;
+  letter-spacing: -3px;
+}
+
+.sub-header {
+  text-align: center;
+  font-size: 1.1rem;
+  font-family: var(--font-mono);
+  opacity: 0.7;
+  margin-bottom: 4rem;
+  text-transform: uppercase;
+}
+
+/* Module 1: The Blueprint vs The Building */
+.comparison-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin: 2rem 0;
+}
+
+@media (max-width: 700px) {
+  .comparison-grid { grid-template-columns: 1fr; }
+}
+
+.blueprint-box {
+  background: var(--code-bg);
+  border: 3px dashed var(--border);
+  padding: 1.5rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.building-box {
+  background: var(--surface);
+  border: 3px solid var(--border);
+  box-shadow: 4px 4px 0px var(--shadow);
+  padding: 1.5rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
+/* Module 2: Virtual Address Space mapping */
+.mapping-viz {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 2rem;
+  padding: 2rem 0;
+  flex-wrap: wrap;
+}
+
+.virt-col {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 120px;
+}
+
+.mem-segment {
+  height: 40px;
+  border: 2px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2px;
+}
+
+.arrow {
+  font-size: 2rem;
+  font-weight: bold;
+}
+
+.phys-mem {
+  width: 200px;
+  border: 4px solid var(--border);
+  background: var(--surface);
+  box-shadow: 6px 6px 0px var(--shadow);
+}
+
+/* Module 3: The Crash Scenario */
+.crash-simulation {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.process-window {
+  border: 3px solid var(--border);
+  background: var(--surface);
+  box-shadow: 4px 4px 0px var(--shadow);
+  overflow: hidden;
+}
+
+.win-title {
+  background: var(--border);
+  color: var(--surface);
+  padding: 4px 8px;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  display: flex;
+  justify-content: space-between;
+}
+
+.win-content {
+  padding: 1rem;
+  height: 150px;
+  position: relative;
+}
+
+.crash-overlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: var(--accent);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  font-size: 1.5rem;
+  transform: scale(0);
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.crash-overlay.active {
+  transform: scale(1);
+}
+
+.highlight-text {
+  background: var(--accent);
+  color: white;
+  padding: 0 4px;
+  font-weight: bold;
+}
+
+.step-label {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 1.8rem;
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+  display: block;
+  letter-spacing: -1px;
+}
+</style>
+
+<title>The Logic of Process Isolation</title>
+
+<div class="app-container">
+  <h1 class="header">PROCESS<br>ISOLATION</h1>
+  <p class="sub-header">System Analysis // OS Virtualization</p>
+
+  <!-- Section 1: Blueprint vs Building -->
+  <div class="brutalist-card">
+    <span class="step-label">01. Program vs. Process</span>
+    <p>A <strong style="text-decoration: underline;">Program</strong> is just a file on your disk. A <strong style="text-decoration: underline;">Process</strong> is that program actually running in memory.</p>
+
+    <div class="comparison-grid">
+      <div class="blueprint-box">
+        <div style="font-size: 3rem;">📄</div>
+        <strong style="font-family: var(--font-display);">THE PROGRAM</strong><br>
+        <span style="font-size: 0.9rem; opacity: 0.7; font-family: var(--font-mono);">WINWORD.EXE<br>(Blueprint)</span>
+        <div style="font-size: 0.8rem; margin-top: 1rem; font-style: italic;">Disk Storage. Static. Shared.</div>
+      </div>
+      <div class="building-box">
+        <div style="font-size: 3rem;">🏗️</div>
+        <strong style="font-family: var(--font-display);">THE PROCESS</strong><br>
+        <span style="font-size: 0.9rem; opacity: 0.7; font-family: var(--font-mono);">PID: 1024<br>(Instance)</span>
+        <div style="font-size: 0.8rem; margin-top: 1rem; font-style: italic;">Active RAM. Dynamic. Private.</div>
+      </div>
+    </div>
+    <p>When you open Word twice, the OS uses the <strong style="color: var(--accent);">same blueprint</strong> to build <strong style="color: var(--accent);">two different buildings</strong>.</p>
+  </div>
+
+  <!-- Section 2: Virtual Memory Mapping -->
+  <div class="brutalist-card">
+    <span class="step-label">02. Virtual Addressing</span>
+    <p>Each process believes it owns the entire memory. The OS maps these "fake" addresses to real physical RAM.</p>
+
+    <div class="mapping-viz">
+      <div class="virt-col">
+        <div style="text-align: center; font-weight: bold; font-size: 0.7rem; font-family: var(--font-mono);">PROC A</div>
+        <div class="mem-segment" style="background: var(--surface); border-color: var(--border);">CODE</div>
+        <div class="mem-segment" style="background: var(--accent);">DATA A</div>
+        <div class="mem-segment" style="background: var(--surface);">...</div>
+      </div>
+
+      <div class="arrow">⮕</div>
+
+      <div class="phys-mem">
+        <div style="text-align: center; font-weight: bold; font-size: 0.7rem; padding: 5px; border-bottom: 2px solid var(--border); font-family: var(--font-mono);">PHYSICAL RAM</div>
+        <div class="mem-segment" style="background: var(--surface); border-color: var(--border);">CODE (Shared)</div>
+        <div class="mem-segment" style="background: var(--accent);">DATA A (Private)</div>
+        <div class="mem-segment" style="background: var(--surface); opacity: 0.5;">...</div>
+        <div class="mem-segment" style="background: var(--accent); opacity: 0.8;">DATA B (Private)</div>
+      </div>
+
+      <div class="arrow">⬅</div>
+
+      <div class="virt-col">
+        <div style="text-align: center; font-weight: bold; font-size: 0.7rem; font-family: var(--font-mono);">PROC B</div>
+        <div class="mem-segment" style="background: var(--surface); border-color: var(--border);">CODE</div>
+        <div class="mem-segment" style="background: var(--accent);">DATA B</div>
+        <div class="mem-segment" style="background: var(--surface);">...</div>
+      </div>
+    </div>
+    <p style="text-align: center; margin-top: 1rem; font-size: 0.9rem; font-family: var(--font-mono);">
+      [Mapping: Code is Shared | Data is Isolated]
+    </p>
+  </div>
+
+  <!-- Section 3: The Crash -->
+  <div class="brutalist-card">
+    <span class="step-label">03. The Wall of Isolation</span>
+    <p>Isolation prevents a crash in one document from destroying another. The OS creates a memory wall.</p>
+
+    <div class="crash-simulation">
+      <div class="process-window">
+        <div class="win-title"><span style="font-family: var(--font-mono);">Thesis.docx</span><span style="cursor:pointer;">✕</span></div>
+        <div class="win-content">
+          <div style="font-family: var(--font-mono); font-size: 0.8rem;">Writing thesis...<br>Page 42...<br>Saving...</div>
+          <div class="crash-overlay" id="crash-1">CRASHED</div>
+        </div>
+      </div>
+      <div class="process-window">
+        <div class="win-title"><span style="font-family: var(--font-mono);">List.docx</span><span style="cursor:pointer;">✕</span></div>
+        <div class="win-content">
+          <div style="font-family: var(--font-mono); font-size: 0.8rem;">- Milk<br>- Eggs<br>- Bread</div>
+          <div class="crash-overlay" id="crash-2">SAFE</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="text-align: center; margin-top: 2rem;">
+      <button class="brutalist-btn" onclick="simulateCrash()">Trigger Crash</button>
+    </div>
+
+    <p id="crash-explanation" style="margin-top: 1.5rem; text-align: center; font-weight: 500; opacity: 0; font-family: var(--font-mono);">
+      Process 1 destroyed. <span class="highlight-text">Process 2 remains operational.</span>
+    </p>
+  </div>
+</div>
+
+<script>
+  function simulateCrash() {
+    const c1 = document.getElementById('crash-1');
+    const exp = document.getElementById('crash-explanation');
+
+    c1.classList.add('active');
+    exp.style.opacity = '1';
+
+    const win2 = document.querySelectorAll('.process-window')[1];
+    win2.style.transition = 'transform 0.1s';
+
+    let shakes = 0;
+    const interval = setInterval(() => {
+      win2.style.transform = shakes % 2 === 0 ? 'translateX(2px)' : 'translateX(-2px)';
+      shakes++;
+      if (shakes > 10) {
+        clearInterval(interval);
+        win2.style.transform = 'translateX(0)';
+      }
+    }, 50);
+  }
+</script>
